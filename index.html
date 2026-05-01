@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Election Process Interactive Assistant</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f7f8fb;
+      --panel: #ffffff;
+      --panel-alt: #eef2f7;
+      --text: #1f2937;
+      --muted: #4b5563;
+      --border: #d1d5db;
+      --primary: #2563eb;
+      --primary-soft: #eff6ff;
+      --success: #16a34a;
+      --success-soft: #dcfce7;
+      --danger: #b91c1c;
+      --input: #f8fafc;
+      --shadow: none;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111827;
+        --panel: #1f2937;
+        --panel-alt: #111827;
+        --text: #f8fafc;
+        --muted: #9ca3af;
+        --border: #374151;
+        --primary: #60a5fa;
+        --primary-soft: #1e3a8a;
+        --success: #4ade80;
+        --success-soft: #064e3b;
+        --danger: #f87171;
+        --input: #111827;
+      }
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .app-shell {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      min-height: 100vh;
+    }
+    .sidebar {
+      background: var(--panel-alt);
+      border-right: 1px solid var(--border);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .sidebar h1 {
+      margin: 0;
+      font-size: 1.4rem;
+    }
+    .step-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 12px;
+    }
+    .step-item {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--panel);
+      padding: 16px;
+      display: grid;
+      gap: 10px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+    .step-item[aria-selected="true"] {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+    }
+    .step-item.completed {
+      border-color: var(--success);
+    }
+    .step-item:hover {
+      border-color: var(--primary);
+    }
+    .step-number {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: var(--panel);
+      background: var(--primary);
+    }
+    .step-headline {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .step-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    .step-time {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .step-status {
+      font-size: 0.85rem;
+      color: var(--success);
+      font-weight: 600;
+    }
+    .main {
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .detail-card,
+    .chat-panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px;
+    }
+    .detail-card h2 {
+      margin: 0 0 12px;
+      font-size: 1.5rem;
+    }
+    .detail-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .badge.primary { background: var(--primary-soft); color: var(--primary); }
+    .badge.success { background: var(--success-soft); color: var(--success); }
+    .badge.alt { background: var(--panel-alt); color: var(--muted); }
+    .detail-description {
+      margin: 0;
+      line-height: 1.75;
+      color: var(--muted);
+    }
+    .quick-questions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .quick-button {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--bg);
+      padding: 12px 16px;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+    .quick-button:hover,
+    .quick-button:focus-visible {
+      border-color: var(--primary);
+      outline: none;
+      background: var(--primary-soft);
+    }
+    .chat-panel h3 {
+      margin: 0 0 16px;
+      font-size: 1.25rem;
+    }
+    .chat-history {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-height: 420px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+    .message {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+      border-radius: 18px;
+      line-height: 1.6;
+      border: 1px solid transparent;
+    }
+    .message.user {
+      background: var(--bg);
+      border-color: var(--border);
+      align-self: flex-end;
+    }
+    .message.assistant {
+      background: var(--panel-alt);
+      border-color: var(--border);
+    }
+    .message-role {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    .message-text {
+      margin: 0;
+      white-space: pre-wrap;
+      color: var(--text);
+    }
+    .chat-form {
+      margin-top: 18px;
+      display: grid;
+      gap: 14px;
+    }
+    .input-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .chat-input {
+      flex: 1 1 0;
+      min-width: 0;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 14px 18px;
+      background: var(--input);
+      color: var(--text);
+      font-size: 1rem;
+    }
+    .chat-input:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+      border-color: var(--primary);
+    }
+    .send-button {
+      border: none;
+      border-radius: 999px;
+      background: var(--primary);
+      color: #ffffff;
+      padding: 14px 20px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .send-button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .typing-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .typing-dots {
+      display: inline-flex;
+      gap: 4px;
+      align-items: baseline;
+    }
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text);
+      animation: blink 1.2s infinite ease-in-out;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0.2; }
+      40% { opacity: 1; }
+    }
+    @media (max-width: 900px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Election steps navigation">
+      <div>
+        <p style="margin:0; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.82rem;">Election Guide</p>
+        <h1>Process steps</h1>
+      </div>
+      <ol class="step-list" id="stepList"></ol>
+    </aside>
+    <main class="main">
+      <section class="detail-card" aria-live="polite" id="stepDetail" aria-label="Active election step details">
+        <h2 id="detailTitle">Election step details</h2>
+        <div class="detail-meta" id="detailTags"></div>
+        <p class="detail-description" id="detailDescription">Select a step to see the process explanation and ask the assistant for more details.</p>
+      </section>
+      <section class="chat-panel" aria-label="Election assistant chat">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+          <h3>Ask the election assistant</h3>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:0.8rem; color:var(--muted); padding:4px 8px; background:var(--panel-alt); border-radius:12px;">Demo Mode</span>
+            <div id="typingIndicator" class="typing-indicator" aria-hidden="true" hidden>
+              <span class="typing-dots">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+              </span>
+              Typing...
+            </div>
+          </div>
+        </div>
+        <div class="chat-history" id="chatHistory" aria-live="polite"></div>
+        <div class="chat-form">
+          <label for="chatInput" class="sr-only">Type your election question</label>
+          <div class="input-group">
+            <input id="chatInput" class="chat-input" type="text" placeholder="Ask about voter registration, campaigns, voting, results..." aria-label="Type your election question" />
+            <button id="sendButton" class="send-button" type="button">Send</button>
+          </div>
+          <div class="quick-questions" aria-label="Quick election questions">
+            <button class="quick-button" type="button" data-question="How does voter registration work?">How does voter registration work?</button>
+            <button class="quick-button" type="button" data-question="What is the Model Code of Conduct?">What is the Model Code of Conduct?</button>
+            <button class="quick-button" type="button" data-question="How are EVMs secured and verified?">How are EVMs secured and verified?</button>
+            <button class="quick-button" type="button" data-question="Who monitors the vote count?">Who monitors the vote count?</button>
+            <button class="quick-button" type="button" data-question="How can someone challenge an election result?">How can someone challenge an election result?</button>
+          </div>
+          <p style="font-size:0.8rem; color:var(--muted); text-align:center; margin:12px 0 0; line-height:1.4;">
+            Currently in demo mode with pre-written responses. To enable real AI answers, replace "DEMO_KEY" with your Google Gemini API key in the code.
+          </p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const GOOGLE_API_KEY = "DEMO_KEY"; // Replace with your real Google API key
+    const GEMINI_MODEL = "gemini-1.5-flash";
+    const SYSTEM_PROMPT = "You are a nonpartisan election process guide. Explain election steps, voter rights, democratic procedures, timelines, and civic processes clearly and accurately. Be concise (2–4 sentences unless the user asks for more). Use plain, accessible language. Stay factual and neutral.";
+    const steps = [
+      {
+        id: "voter-registration",
+        title: "Voter Registration",
+        period: "Months before",
+        summary: "Citizens register with election authorities; deadlines are typically 15–30 days before election day.",
+        tags: ["Eligibility check", "Deadline critical"],
+      },
+      {
+        id: "candidate-filing",
+        title: "Candidate Filing",
+        period: "Months before",
+        summary: "Candidates submit nomination papers and security deposits to the election commission.",
+        tags: ["Nomination", "Compliance"],
+      },
+      {
+        id: "campaign-period",
+        title: "Campaign Period",
+        period: "Weeks before",
+        summary: "Parties and candidates campaign via rallies, ads, and debates while the Model Code of Conduct applies.",
+        tags: ["Campaign rules", "Public outreach"],
+      },
+      {
+        id: "voting-day",
+        title: "Voting Day",
+        period: "Election day",
+        summary: "Voters visit polling booths, verify ID, and cast votes via EVM or ballot paper.",
+        tags: ["Polling", "Ballot security"],
+      },
+      {
+        id: "vote-counting",
+        title: "Vote Counting",
+        period: "After voting",
+        summary: "Votes are counted under observation from party representatives; results are tallied by constituency.",
+        tags: ["Transparency", "Observation"],
+      },
+      {
+        id: "result-certification",
+        title: "Result Certification",
+        period: "Days after",
+        summary: "Official results are certified, published in gazette, and winners are given certificates; legal challenges may open.",
+        tags: ["Certification", "Legal review"],
+      }
+    ];
+
+    const state = {
+      activeStepIndex: 0,
+      history: []
+    };
+
+    const stepList = document.getElementById("stepList");
+    const detailTitle = document.getElementById("detailTitle");
+    const detailTags = document.getElementById("detailTags");
+    const detailDescription = document.getElementById("detailDescription");
+    const chatHistory = document.getElementById("chatHistory");
+    const chatInput = document.getElementById("chatInput");
+    const sendButton = document.getElementById("sendButton");
+    const typingIndicator = document.getElementById("typingIndicator");
+    const quickButtons = document.querySelectorAll(".quick-button");
+
+    function escapeText(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function renderSteps() {
+      stepList.innerHTML = "";
+      steps.forEach((step, index) => {
+        const item = document.createElement("li");
+        item.className = "step-item";
+        if (index < state.activeStepIndex) item.classList.add("completed");
+        item.setAttribute("role", "button");
+        item.setAttribute("tabindex", "0");
+        item.setAttribute("aria-label", `${step.title}, ${step.period} step`);
+        item.setAttribute("aria-selected", index === state.activeStepIndex ? "true" : "false");
+        item.innerHTML = `
+          <div class="step-headline">
+            <span class="step-number">${index + 1}</span>
+            <div>
+              <p class="step-title">${step.title}</p>
+              <p class="step-time">${step.period}</p>
+            </div>
+          </div>
+          <p>${step.summary}</p>
+          ${index < state.activeStepIndex ? `<p class="step-status">✓ Completed</p>` : ""}
+        `;
+        item.addEventListener("click", () => selectStep(index));
+        item.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectStep(index);
+          }
+        });
+        stepList.appendChild(item);
+      });
+    }
+
+    function renderStepDetail() {
+      const step = steps[state.activeStepIndex];
+      detailTitle.textContent = step.title;
+      detailDescription.textContent = step.summary;
+      detailTags.innerHTML = step.tags.map((tag) => `<span class="badge alt">${tag}</span>`).join("");
+      detailTags.insertAdjacentHTML("beforeend", `<span class="badge primary">${step.period}</span>`);
+    }
+
+    function appendMessage(role, content) {
+      const msg = document.createElement("div");
+      msg.className = `message ${role}`;
+      const label = document.createElement("div");
+      label.className = "message-role";
+      label.textContent = role === "user" ? "You" : "Assistant";
+      const body = document.createElement("p");
+      body.className = "message-text";
+      body.textContent = content;
+      msg.appendChild(label);
+      msg.appendChild(body);
+      chatHistory.appendChild(msg);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    function setTyping(active) {
+      typingIndicator.hidden = !active;
+      typingIndicator.setAttribute("aria-hidden", String(!active));
+    }
+
+    function getMockResponse(question) {
+      const responses = {
+        "Explain the election step: Voter Registration. Include the key actions, timing, and what voters or candidates should know.": 
+          "Voter registration is the process where eligible citizens sign up to participate in elections. Key actions include providing personal information like name, address, and date of birth, submitting identification, and completing registration forms. This typically occurs months before election day, with deadlines usually 15-30 days prior to voting. Voters should know their eligibility requirements (age 18+, citizenship, residency), registration methods (online, mail, in-person), and that registration ensures their vote counts in the election.",
+
+        "Explain the election step: Candidate Filing. Include the key actions, timing, and what voters or candidates should know.":
+          "Candidate filing involves political aspirants officially declaring their candidacy for elected positions. Key actions include submitting nomination papers, paying security deposits, and providing required documentation to election authorities. This occurs months before election day, with specific filing periods set by election commissions. Candidates should know the eligibility criteria for their desired position, required documents, deposit amounts (refundable if they meet vote thresholds), and nomination withdrawal deadlines.",
+
+        "Explain the election step: Campaign Period. Include the key actions, timing, and what voters or candidates should know.":
+          "The campaign period is when candidates and parties actively promote their platforms and seek voter support. Key actions include organizing rallies, distributing campaign materials, advertising through approved channels, and participating in public debates. This typically spans several weeks before election day. Candidates should know the Model Code of Conduct restrictions, campaign finance limits, permitted advertising methods, and that all campaign activities must cease 48 hours before voting begins.",
+
+        "Explain the election step: Voting Day. Include the key actions, timing, and what voters or candidates should know.":
+          "Voting day is when registered citizens cast their ballots at designated polling stations. Key actions include verifying voter identity, receiving ballot papers or using EVMs, marking choices, and submitting votes. This occurs on the scheduled election date from early morning until evening. Voters should know their polling station location, required identification documents, voting procedures, and that they can vote only once. Candidates should know that campaigning is prohibited near polling stations.",
+
+        "Explain the election step: Vote Counting. Include the key actions, timing, and what voters or candidates should know.":
+          "Vote counting involves tallying ballots under supervision after polling stations close. Key actions include opening EVMs/ballot boxes in the presence of party representatives, counting votes constituency-wise, and recording results. This begins immediately after voting ends and may continue through the night. Candidates should know they can appoint counting agents, results are announced progressively, and any discrepancies can be noted for potential legal challenges.",
+
+        "Explain the election step: Result Certification. Include the key actions, timing, and what voters or candidates should know.":
+          "Result certification involves official declaration and publication of final election outcomes. Key actions include compiling constituency results, verifying totals, and issuing certificates to winners. This occurs days after vote counting is complete. Candidates should know the certification timeline, grounds for challenging results (typically 3-7 days window), and that certified results are published in official gazettes, becoming legally binding.",
+
+        "How does voter registration work?": 
+          "Voter registration works by citizens providing their personal information to election authorities to be added to voter rolls. The process involves submitting forms with name, address, date of birth, and ID number. Authorities verify eligibility and residency. Registration can be done online through state election websites, by mail with paper forms, or in person at DMV offices, libraries, or election centers. Once registered, voters receive confirmation and can check their status online.",
+
+        "What is the Model Code of Conduct?": 
+          "The Model Code of Conduct is a set of ethical guidelines that political parties, candidates, and their supporters must follow during elections. It prohibits using government resources for campaigning, making false statements about opponents, intimidating voters, and other unethical practices. The code applies during the campaign period, typically weeks before election day. Election commissions monitor compliance and can impose penalties for violations. Candidates should know the code promotes fair elections and maintains public trust in the democratic process.",
+
+        "How are EVMs secured and verified?": 
+          "Electronic Voting Machines (EVMs) are secured through multiple layers of protection. They are stored in secure warehouses before elections, sealed with tamper-evident seals, and transported under police protection. During setup, machines are tested with mock votes in front of party representatives. Each EVM has a unique ID and can be tracked throughout the process. After voting, machines are stored securely until counting. Verification includes candidate setting (programming candidate names), first level check (testing with mock votes), and final verification before deployment.",
+
+        "Who monitors the vote count?": 
+          "Vote counting is monitored by representatives from all political parties, election officials, and independent observers. Party agents are present throughout the counting process to ensure transparency. The counting takes place under video surveillance in designated centers. Results are tallied constituency-wise and announced publicly. Any discrepancies can be challenged through the legal system. This multi-party monitoring ensures the integrity of the electoral process and maintains public confidence in election results.",
+
+        "How can someone challenge an election result?": 
+          "Election results can be challenged through the legal system within specified time limits, typically days after results are announced. Challenges must be filed in election tribunals or courts with specific evidence of irregularities. Common grounds include voter fraud, counting errors, or violations of election laws. The process involves submitting petitions with supporting documents and witness statements. Courts review evidence and may order recounts, annul results in specific areas, or uphold the original results. Candidates should know the strict timelines and evidentiary requirements for successful challenges."
+      };
+
+      // Return exact match or a generic response
+      const exactMatch = responses[question];
+      if (exactMatch) return exactMatch;
+
+      // Fallback responses for unmatched questions
+      const lowerQuestion = question.toLowerCase();
+      if (lowerQuestion.includes("voter") || lowerQuestion.includes("registration")) {
+        return "Voter registration is the process of signing up to vote in elections. Eligible citizens (typically 18+ years old) must provide identification and personal information to election authorities. This can be done online, by mail, or in person. Registration deadlines are usually 15-30 days before election day. Once registered, voters receive confirmation and can verify their status on official election websites.";
+      }
+      if (lowerQuestion.includes("campaign") || lowerQuestion.includes("conduct")) {
+        return "Election campaigns follow the Model Code of Conduct, which ensures fair play. Political parties and candidates must avoid using government resources, making false claims, or intimidating voters. Campaigning typically occurs in the weeks before election day. Election commissions monitor compliance and can penalize violations. The code helps maintain the integrity of the democratic process.";
+      }
+      if (lowerQuestion.includes("voting") || lowerQuestion.includes("evm") || lowerQuestion.includes("ballot")) {
+        return "On voting day, registered voters visit their assigned polling stations with valid ID. They verify their identity, receive a ballot or use an EVM, and make their choices. EVMs are electronic voting machines that are pre-programmed, tested, and sealed before use. The process is designed to be secure, accessible, and transparent.";
+      }
+      if (lowerQuestion.includes("count") || lowerQuestion.includes("result")) {
+        return "Vote counting occurs after polling ends, under supervision of party representatives and election officials. Results are tallied constituency by constituency and announced publicly. The process includes verification checks and can be monitored by candidates' agents. Final results are certified by election authorities and published officially.";
+      }
+
+      return "I'm a demo assistant for election information. This appears to be a question about elections. For detailed answers about voter rights, election procedures, or democratic processes, please set up your Google Gemini API key to enable real AI responses. The demo provides accurate information about voter registration, campaigning, voting procedures, and result certification.";
+    }
+
+    async function sendAiRequest(userText) {
+      const userMessage = { role: "user", content: userText };
+      state.history.push(userMessage);
+      appendMessage("user", userText);
+      // Mock responses for testing when API key is not set up
+      if (GOOGLE_API_KEY === "DEMO_KEY" || !GOOGLE_API_KEY || GOOGLE_API_KEY.length < 20) {
+        setTimeout(() => {
+          const mockResponse = getMockResponse(userText);
+          const assistantMessage = { role: "assistant", content: mockResponse };
+          state.history.push(assistantMessage);
+          appendMessage("assistant", mockResponse);
+          setTyping(false);
+          sendButton.disabled = false;
+        }, 1000 + Math.random() * 1000); // Simulate typing delay
+        return;
+      }
+
+      try {
+        const messages = state.history.map(msg => ({
+          role: msg.role === "user" ? "user" : "model",
+          parts: [{ text: msg.content }]
+        }));
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GOOGLE_API_KEY}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            contents: messages,
+            systemInstruction: {
+              role: "user",
+              parts: [{ text: SYSTEM_PROMPT }]
+            },
+            generationConfig: {
+              temperature: 0.2,
+              maxOutputTokens: 1000,
+            }
+          })
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("API Response Status:", response.status);
+          console.error("API Response Text:", errorText);        console.error("Requested Model:", GEMINI_MODEL);
+        console.error("API Key (first 10 chars):", GOOGLE_API_KEY.substring(0, 10) + "...");          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        const data = await response.json();
+        if (data.error) {
+          throw new Error(`${data.error.code}: ${data.error.message}`);
+        }
+        const aiContent = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "I could not generate a response.";
+        const assistantMessage = { role: "assistant", content: aiContent };
+        state.history.push(assistantMessage);
+        appendMessage("assistant", aiContent);
+      } catch (error) {
+        let errorMessage = "Sorry, I could not reach the assistant right now.";
+        const errorStr = error.message.toLowerCase();
+        if (errorStr.includes("invalid_api_key") || errorStr.includes("401") || errorStr.includes("api_key")) {
+          errorMessage += " Your Google API key appears to be invalid. Please get a new API key from Google Cloud Console (not AI Studio).";
+        } else if (errorStr.includes("permission") || errorStr.includes("403")) {
+          errorMessage += " Please check your API key has the correct permissions for Gemini API.";
+        } else if (errorStr.includes("quota") || errorStr.includes("429")) {
+          errorMessage += " API quota exceeded. Please check your usage limits.";
+        } else if (errorStr.includes("blocked") || errorStr.includes("safety")) {
+          errorMessage += " The request was blocked by content safety filters.";
+        } else if (errorStr.includes("model") || errorStr.includes("not found")) {
+          errorMessage += " The AI model is not available. Please check the model name.";
+        } else {
+          errorMessage += " Please check your network connection and API key.";
+        }
+        appendMessage("assistant", errorMessage);
+        console.error("API Error:", error);
+      } finally {
+        chatInput.value = "";
+        setTyping(false);
+        sendButton.disabled = false;
+      }
+    }
+
+    function selectStep(index) {
+      if (index === state.activeStepIndex) return;
+      state.activeStepIndex = index;
+      update();
+      const step = steps[index];
+      const prompt = `Explain the election step: ${step.title}. Include the key actions, timing, and what voters or candidates should know.`;
+      sendAiRequest(prompt);
+    }
+
+    function sendCurrentQuestion(question) {
+      chatInput.value = question;
+      handleSend();
+    }
+
+    function handleSend() {
+      const text = chatInput.value.trim();
+      if (!text) return;
+      chatInput.value = "";
+      sendAiRequest(text);
+    }
+
+    chatInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        handleSend();
+      }
+    });
+    sendButton.addEventListener("click", handleSend);
+    quickButtons.forEach((button) => {
+      button.addEventListener("click", () => sendCurrentQuestion(button.dataset.question));
+    });
+
+    function init() {
+      update();
+      const initialStep = steps[state.activeStepIndex];
+      const initialPrompt = `Explain the election step: ${initialStep.title}. Include the key actions, timing, and what voters or candidates should know.`;
+      sendAiRequest(initialPrompt);
+    }
+
+    init();
+  </script>
+</body>
+</html>
