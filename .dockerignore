@@ -1,0 +1,6 @@
+.git
+.gitignore
+README.md
+cloudbuild.yaml
+*.pyc
+__pycache__/

@@ -42,3 +42,44 @@ const GOOGLE_API_KEY = "DEMO_KEY"; // Replace with your real Google API key
 ## GitHub
 
 Repository: https://github.com/jancysen/Election-Process-Interactive-Assistant
+
+## Deploy to Google Cloud Run
+
+This project can be deployed to Google Cloud Run using the included `Dockerfile` and `cloudbuild.yaml`.
+
+### Deploy manually with Cloud Build
+
+1. Enable the following APIs in your Google Cloud project:
+   - Cloud Run
+   - Cloud Build
+   - Container Registry or Artifact Registry
+
+2. Make sure you have `gcloud` installed and authenticated:
+   ```bash
+   gcloud auth login
+   gcloud config set project YOUR_PROJECT_ID
+   ```
+
+3. Build and deploy:
+   ```bash
+   gcloud builds submit --config cloudbuild.yaml .
+   ```
+
+4. After deployment, Cloud Run will provide a public URL for the service.
+
+### Alternative local Docker run
+
+1. Build the container:
+   ```bash
+   docker build -t election-assistant .
+   ```
+2. Run it locally:
+   ```bash
+   docker run -p 8080:8080 election-assistant
+   ```
+
+### Files added for deployment
+
+- `Dockerfile` - container image definition for serving the static app
+- `cloudbuild.yaml` - Cloud Build pipeline to build, push, and deploy to Cloud Run
+- `.dockerignore` - files excluded from the container build
